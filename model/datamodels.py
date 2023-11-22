@@ -61,9 +61,18 @@ class TokenizedSentence:
     url: str
     content: str
     tokens: List[str]
-    # one_grams: List[tuple]
-    # two_grams: List[tuple]
-    # three_grams: List[tuple]
+
+
+@dataclass
+class NGramSentence:
+    """Data container for ngrams generated from a sentence's tokens"""
+
+    title: str
+    url: str
+    content: str
+    one_grams: List[tuple]
+    two_grams: List[tuple]
+    three_grams: List[tuple]
     # four_grams: List[tuple]
     # five_grams: List[tuple]
     # six_grams: List[tuple]

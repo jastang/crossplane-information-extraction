@@ -2,7 +2,8 @@ import apache_beam as beam
 import dataclasses
 
 from model.datamodels import *
-from nltk import ngrams, word_tokenize
+from nltk import ngrams, word_tokenize, WordNetLemmatizer
+from nltk.corpus import stopwords
 
 
 class ToTextSentimentSchema(beam.DoFn):
@@ -21,7 +22,7 @@ class ToTextSentimentSchema(beam.DoFn):
         yield jsonl
 
 
-class TokenizeAndLemmatize(beam.DoFn):
+class Tokenize(beam.DoFn):
     # TODO(jastang): maybe use a sentence tokenizer instead.
     # Picking line break over a period since it gives us some contextual grouping for free.
     def __init__(self, delimiter="\n"):
@@ -32,18 +33,54 @@ class TokenizeAndLemmatize(beam.DoFn):
             tokens = word_tokenize(sentence)
 
             result = TokenizedSentence(
-                title=page.title,
-                url=page.url,
-                content=sentence,
-                tokens=tokens
-                # one_grams=[list(gram) for gram in ngrams(tokens, 1)],
-                # two_grams=[list(gram) for gram in ngrams(tokens, 2)],
-                # three_grams=[list(gram) for gram in ngrams(tokens, 3)],
-                # four_grams=[],  # [list(gram) for gram in ngrams(tokens, 4)],
-                # five_grams=[],  # [list(gram) for gram in ngrams(tokens, 5)],
-                # six_grams=[],  # [list(gram) for gram in ngrams(tokens, 6)],
+                title=page.title, url=page.url, content=sentence, tokens=tokens
             )
 
-            jsonl = dataclasses.asdict(result)
+            yield result
 
-            yield jsonl
+
+class Lemmatize(beam.DoFn):
+    def __init__(self, lemmatizer=WordNetLemmatizer()):
+        self.lemmatizer = lemmatizer
+
+    def process(self, sentence: TokenizedSentence):
+        result = TokenizedSentence(
+            title=sentence.title,
+            url=sentence.url,
+            content=sentence.content,
+            tokens=[self.lemmatizer.lemmatize(token) for token in sentence.tokens],
+        )
+
+        yield result
+
+
+class RemoveStopWords(beam.DoFn):
+    def __init__(self, language="english"):
+        self.corpus = stopwords.words(language)
+
+    def process(self, sentence: TokenizedSentence):
+        result = TokenizedSentence(
+            title=sentence.title,
+            url=sentence.url,
+            content=sentence.content,
+            tokens=[token for token in sentence.tokens if token not in self.corpus],
+        )
+
+        yield result
+
+
+class GenerateNGrams(beam.DoFn):
+    def process(self, sentence: TokenizedSentence):
+        result = NGramSentence(
+            title=sentence.title,
+            url=sentence.url,
+            content=sentence.content,
+            one_grams=[list(gram) for gram in ngrams(sentence.tokens, 1)],
+            two_grams=[list(gram) for gram in ngrams(sentence.tokens, 2)],
+            three_grams=[list(gram) for gram in ngrams(sentence.tokens, 3)],
+        )
+
+        # TODO(jastang): factor this out to the final transform before writing
+        jsonl = dataclasses.asdict(result)
+
+        yield jsonl

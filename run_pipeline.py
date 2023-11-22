@@ -5,7 +5,7 @@ import json
 
 from apache_beam.options.pipeline_options import PipelineOptions
 from model.datamodels import *
-from transforms.dataprep import ToTextSentimentSchema, TokenizeAndLemmatize
+from transforms.dataprep import Tokenize, Lemmatize, GenerateNGrams, RemoveStopWords
 
 beam_options = PipelineOptions(runner="DirectRunner")
 
@@ -46,9 +46,10 @@ def run() -> None:
             # Main processing
             _ = (
                 page_data
-                | "Extract sentences" >> beam.ParDo(TokenizeAndLemmatize())
-                # | "Filter out stopwords" >> beam.ParDo(RemoveStopwords())
-                # | "Generate n-grams" >> beam.ParDo(GenerateNGrams())
+                | "Extract sentences" >> beam.ParDo(Tokenize())
+                | "Lemmatize (find roots)" >> beam.ParDo(Lemmatize())
+                | "Filter out stopwords" >> beam.ParDo(RemoveStopWords())
+                | "Generate n-grams" >> beam.ParDo(GenerateNGrams())
                 | "Write index files"
                 >> beam.io.WriteToText(
                     file_path_prefix="crossplane-docs",
