@@ -9,10 +9,7 @@ from transforms.dataprep import Tokenize, Lemmatize, GenerateNGrams, RemoveStopW
 
 beam_options = PipelineOptions(runner="DirectRunner")
 
-INPUT_FILE = "/Users/jasontang/Downloads/docs.json"
-
-# "/Users/jasontang/Desktop/hacking/crossplane/general/2022-fall.json"
-
+INPUT_FILE = "./corpus/docs.json"
 
 def run() -> None:
     with beam.Pipeline(options=beam_options) as pipeline:
@@ -57,8 +54,6 @@ def run() -> None:
                     num_shards=5,
                 )
             )
-
-            # | "See what we're working with here" >> beam.Map(print)
 
             # | "Map to data container"
             # >> beam.Map(
